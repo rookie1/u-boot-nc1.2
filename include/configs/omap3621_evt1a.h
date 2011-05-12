@@ -204,7 +204,7 @@
 //This can be used as loading address for gas gauge history data
 #define LOAD_ADDRESS		0x81C00000
 
-#define CONFIG_BOOTCOMMAND "run autodetectmmc; run readtokens; run checkbootcount; run checkrom; run checkupdate; run checkbcb; run ${bootvar}"
+#define CONFIG_BOOTCOMMAND "run autodetectmmc; run readtokens; run checkbootcount; run checkrom; run checkupdate; run checkaltboot; run checkbcb; run ${bootvar}"
 //#define CONFIG_BOOTARGS "console=ttyS0,115200n8 root=/dev/mmcblk0p2 rw rootdelay=1 mem=256M init=/init"
 #define CONFIG_BOOTARGS ""
 
@@ -218,6 +218,12 @@
 	"\0" \
 \
 "bootvar=normalboot" \
+	"\0" \
+\
+"kernelfile=uImage" \
+	"\0" \
+\
+"ramdiskfile=uRamdisk" \
 	"\0" \
 \
 "commonbootargs=console=ttyO0,115200n8 androidboot.console=ttyO0 initrd rw init=/init videoout=omap24xxvout omap_vout_mod.video1_numbuffers=6 omap_vout_mod.vid1_static_vrfb_alloc=y omap_vout_mod.video2_numbuffers=6 omap_vout_mod.vid2_static_vrfb_alloc=y omapfb.vram=0:8M no_console_suspend" \
@@ -236,7 +242,7 @@ if fatload mmc ${mmcromdev}:2 0x81c00000 devconf/BootCnt 4; then\
  fatsave mmc ${mmcromdev}:2 0x81c00000 devconf/BootCnt 4;\
 fi;\
 setenv bootargs $commonbootargs;\
-mmcinit $mmcbootdev; fatload mmc $mmcbootdev 0x81c00000 uImage; fatload mmc $mmcbootdev 0x81f00000 uRamdisk; bootm 0x81c00000 0x81f00000" \
+mmcinit $mmcbootdev; fatload mmc $mmcbootdev 0x81c00000 ${kernelfile}; fatload mmc $mmcbootdev 0x81f00000 ${ramdiskfile}; bootm 0x81c00000 0x81f00000" \
 	"\0" \
 \
 "autodetectmmc=if itest.s ${bootdevice} == \"SD\"; then\
@@ -324,6 +330,32 @@ elif itest.b *0x81c00040 -ne 0 &&\
   setenv bootvar recoveryboot;\
 fi" \
 	"\0" \
+\
+"checkaltboot=mmcinit $mmcbootdev;\
+if fatload mmc $mmcbootdev 0x81c00000 u-boot.altimg 32; then \
+  setenvmem altkernelfile 0x81c00000 0x$filesize;\
+else \
+  setenv altkernelfile uImage; \
+fi; \
+if fatload mmc $mmcbootdev 0x81c00000 u-boot.altram 32; then \
+  setenvmem altramdiskfile 0x81c00000 0x$filesize;\
+else \
+  setenv altramdiskfile uRamdisk; \
+fi; \
+if fatload mmc $mmcbootdev 0x81c00000 u-boot.order 4; then \
+  if itest ${alternateboot} -eq 1; then \
+    mw.b 0x81c00002 0 1; \
+    setenvmem mmcbootdev 0x81c00001 1; \
+  else \
+    mw.b 0x81c00001 0 1; \
+    setenvmem mmcbootdev 0x81c00000 1; \
+  fi; \
+fi; \
+if itest ${alternateboot} -eq 1; then \
+  setenv kernelfile ${altkernelfile}; \
+  setenv ramdiskfile ${altramdiskfile}; \
+fi" \
+        "\0" \
 \
 "checkupdate=mmcinit 0;\
 if itest.s ${resettype} -eq \"cold\"; then\

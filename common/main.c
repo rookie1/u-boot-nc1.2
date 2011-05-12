@@ -518,10 +518,18 @@ static void Encore_boot(void)
 	// Read the keypad and store any keys pressed during start
 	tps65921_keypad_keys_pressed(&key_pad);
 
+        // Check if the user request recovery by holding VOLUP & VOLDN
+        if ((key_pad & VOLUP_KEY) && (key_pad & VOLDN_KEY))
+            user_req = 1;
+
+        // Check if the user request alternate boot by holding HOME
+        if (key_pad & HOME_KEY)
+            user_req = 2;
+/*
 	// Check if the user request recovery by holding PWR & HOME keys
 	if (gpio_pin_read(14) && (key_pad & HOME_KEY))
 	    user_req = 1;
-
+*/
 	
 	i=0;
 	while ( max17042_init() != 0 ) {
@@ -689,11 +697,11 @@ static void Encore_boot(void)
 	}
     /*battery ok to boot*/
     if(cap_ok){
-		if (user_req) {
+		if (user_req == 1) {
 			for (i = 0; i < FACTORY_RESET_LOOP; i++)
 			{
 				tps65921_keypad_keys_pressed(&key_pad); 
-				if (!(key_pad & HOME_KEY)) {
+/*				if (!(key_pad & HOME_KEY)) {
 					user_req = 0;
 					printf("HOME_KEY held for less than %d Sec\n", FACTORY_RESET_DELAY);
 					break;
@@ -704,7 +712,19 @@ static void Encore_boot(void)
 					printf("POWER_KEY held for less than %d Sec\n", FACTORY_RESET_DELAY);					
 					break;
 				}
-				
+*/				
+                                if (!(key_pad & VOLUP_KEY)) {
+                                        user_req = 0;
+                                        printf("VOLUP_KEY held for less than %d Sec\n", FACTORY_RESET_DELAY);
+                                        break;
+                                }
+
+                                if (!(key_pad & VOLDN_KEY)) {
+                                        user_req = 0;
+                                        printf("VOLDN_KEY held for less than %d Sec\n", FACTORY_RESET_DELAY);
+                                        break;
+                                }
+
 				if (((i+RESET_SECOND) % RESET_SECOND) == 0)
 				{
 					printf("Factory reset count = %d\n", i / RESET_SECOND);	
@@ -712,10 +732,14 @@ static void Encore_boot(void)
 				udelay(RESET_TICK);
 			}
 		}
-		if (user_req) {
+		if (user_req == 1) {
 			  setenv("forcerecovery", "2");
 			  printf("Booting into Factory Reset Kernel\n");
 		}
+                else if (user_req == 2) {
+                          setenv("alternateboot", "1");
+                          printf("Booting into alternate kernel/ramdisk\n");
+                }
 		else {
 			setenv("forcerecovery", "0");
 			printf("Booting into Normal Kernel\n");

@@ -49,7 +49,7 @@ LOGO_H_CONNECT = $(TOPDIR)/include/bmp_logo_c.h
 ifeq ($(LOGO_BMP),)
 LOGO_BMP_CONNECT= logos/connect_charge.bmp
 LOGO_BMP_LOW= logos/lowbatt_charge.bmp
-LOGO_BMP=logos/o_nookcolor_logo_large.bmp
+LOGO_BMP=logos/multi_u_boot.bmp
 
 endif
 
