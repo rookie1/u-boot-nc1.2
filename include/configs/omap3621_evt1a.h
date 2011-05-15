@@ -247,7 +247,8 @@ mmcinit $mmcbootdev; fatload mmc $mmcbootdev 0x81c00000 ${kernelfile}; fatload m
 \
 "autodetectmmc=if itest.s ${bootdevice} == \"SD\"; then\
  setenv mmcbootdev 0;\
- setenv mmcromdev 0;\
+ setenv mmcromdev 1;\
+ mmcinit 1;\
 else\
  setenv mmcbootdev 1;\
  setenv mmcromdev 1;\
